@@ -1,0 +1,348 @@
+ident = {Letter}({Letter} | {Digit} | '_')*
+{character} = {Printable} - ["]
+string = '"' {character}* '"'
+number = ({Digit}+ | {Digit}{HexDigit}* 'H')
+       | ({Digit}+ '.' {Digit}* (('E'|'D')('+'|'-')? {Digit}+)?)
+       
+{HexDigit} = {Digit} + [ABCDEF]           
+
+!Integer = {Digit}+ | {Digit}{HexDigit}* 'H'
+!Real = {Digit}+ '.' {Digit}* (('E'|'D')('+'|'-')? {Digit}+)?
+!ScaleFactor = ('E'|'D')('+'|'-')? {Digit}+         
+                             
+"Start Symbol" = <Module>
+               
+"Case Sensitive" = False
+
+!-------------MODULE--------------------------------
+              
+<Module> ::= MODULE ident ';' <Aux_Module> <Body> ident '.'
+          | MODULE ident ';' <Body> ident '.'
+             
+<Aux_Module> ::= <REC_Module_DS>
+              | <REC_Module_Def> 
+              | <REC_Module_Def> <REC_Module_DS>
+              | <ImportList>
+              | <ImportList> <REC_Module_DS>
+              | <ImportList> <REC_Module_Def>
+              | <ImportList> <REC_Module_Def> <REC_Module_DS>
+                        
+<REC_Module_Def> ::= <Definition> | <REC_Module_Def> <Definition>
+                  
+<REC_Module_DS> ::= <DeclSeq> | <REC_Module_DS> <DeclSeq>
+            
+!-------------IMPORT LIST-------------------- 
+       
+<ImportList> ::= IMPORT <REC_ImportList> ';' 
+
+<REC_ImportList> ::= <Aux_ImportList> | <REC_ImportList> ',' <Aux_ImportList>
+
+<Aux_ImportList> ::= ident | ident ':=' ident
+
+
+!-------------DEFINITION------------------------------
+
+<Definition> ::= DEFINITION ident <Aux_Definition> END ident
+              | DEFINITION ident END ident
+              
+<Aux_Definition> ::= <Aux_Definition_DQ>
+                  | <REC_Definition>
+                  | <Aux_Definition_DQ> <REC_Definition>
+              
+<Aux_Definition_DQ> ::= DEFINES <Qualident>
+              
+<REC_Definition> ::= <Aux_Definition_PI> | <REC_Definition> <Aux_Definition_PI>
+                  
+<Aux_Definition_PI> ::= PROCEDURE ident <FormalPars> ';' | PROCEDURE ident ';'
+
+                  
+!-------------DECL SEQ--------------------------------
+
+<DeclSeq> ::= CONST <REC_DeclSeq_CD>
+           | CONST
+           | TYPE <REC_DeclSeq_TD>
+           | TYPE
+           | VAR <REC_DeclSeq_VD>
+           | VAR
+           | PROCEDURE <ProcDecl> ';'
+!           |
+           
+<REC_DeclSeq_CD> ::= <ConstDecl> ';' | <REC_DeclSeq_CD> <ConstDecl> ';'
+<REC_DeclSeq_TD> ::= <TypeDecl> ';' | <REC_DeclSeq_TD> <TypeDecl> ';'
+<REC_DeclSeq_VD> ::= <VarDecl> ';' | <REC_DeclSeq_VD> <VarDecl> ';'
+!<REC_DeclSeq_PD> ::= <ProcDecl> ';' | <REC_DeclSeq_PD> <ProcDecl> ';'
+
+!-------------CONST DECL------------------------------
+
+<ConstDecl> ::= <IdentDef> '=' <ConstExpr>
+
+
+!-------------TYPE DECL------------------------------
+
+<TypeDecl> ::= <IdentDef> '=' <Type>
+
+
+!-------------VAR DECL------------------------------                  
+
+<VarDecl> ::= <IdentList> ':' <Type>
+
+
+!-------------PROC DECL------------------------------
+
+<ProcDecl> ::= <ProcHead> ';' <REC_ProcDecl> <Body> ident
+            | <ProcHead> ';' <Body> ident
+            
+<REC_ProcDecl> ::= <DeclSeq> | <REC_ProcDecl> <DeclSeq>
+
+
+!-------------PROC HEAD------------------------------
+
+<ProcHead> ::= <IdentDef>
+            | <IdentDef> <FormalPars>
+            | <Aux_ProcHead> <IdentDef> 
+            | <Aux_ProcHead> <IdentDef> <FormalPars>
+            | <SysFlag> <IdentDef> 
+            | <SysFlag> <IdentDef> <FormalPars>
+            | <SysFlag> <Aux_ProcHead> <IdentDef> 
+            | <SysFlag> <Aux_ProcHead> <IdentDef> <FormalPars>
+            
+<Aux_ProcHead> ::= '*' | '&'
+
+
+!-------------SYS FLAG------------------------------V
+
+<SysFlag> ::= '['ident']'                  
+
+
+!-------------FORMAL PARS---------------------------
+
+<FormalPars> ::= '(' <REC_FormalPars> ')' ':' <Qualident>
+              | '(' <REC_FormalPars> ')'
+              | '(' ')' ':' <Qualident>
+       
+<REC_FormalPars> ::= <FPSection> | <REC_FormalPars> ';' <FPSection>
+
+                  
+!-------------FPSECTION---------------------------
+
+<FPSection> ::= VAR <REC_FPSection> ':' <Type> | <REC_FPSection> ':' <Type>
+
+<REC_FPSection> ::= ident | <REC_FPSection> ',' ident
+
+
+!-------------TYPE--------------------------------
+
+<Type> ::= <Qualident>
+!       | RECORD END
+        | RECORD <FieldList> END
+!        | RECORD '(' <Qualident> ')' END
+        | RECORD '(' <Qualident> ')' <FieldList> END
+!        | RECORD <SysFlag> END
+        | RECORD <SysFlag> <FieldList> END
+!        | RECORD <SysFlag> '(' <Qualident> ')' END
+        | RECORD <SysFlag> '(' <Qualident> ')' <FieldList> END
+        | POINTER <SysFlag> TO <Type>
+        | POINTER TO <Type>        
+        | OBJECT <Body>
+        | OBJECT <REC_Type_DeclSeq> <Body>
+        | OBJECT IMPLEMENTS <Qualident> <Body>
+        | OBJECT IMPLEMENTS <Qualident> <REC_Type_DeclSeq> <Body>
+        | OBJECT '(' <Qualident> ')' <Body>
+        | OBJECT '(' <Qualident> ')' <REC_Type_DeclSeq> <Body>
+        | OBJECT '(' <Qualident> ')' IMPLEMENTS <Qualident> <Body>
+        | OBJECT '(' <Qualident> ')' IMPLEMENTS <Qualident> <REC_Type_DeclSeq> <Body>
+        | OBJECT <SysFlag> <Body>
+        | OBJECT <SysFlag> <REC_Type_DeclSeq> <Body>
+        | OBJECT <SysFlag> IMPLEMENTS <Qualident> <Body>
+        | OBJECT <SysFlag> IMPLEMENTS <Qualident> <REC_Type_DeclSeq> <Body>
+        | OBJECT <SysFlag> '(' <Qualident> ')' <Body>
+        | OBJECT <SysFlag> '(' <Qualident> ')' <REC_Type_DeclSeq> <Body>
+        | OBJECT <SysFlag> '(' <Qualident> ')' IMPLEMENTS <Qualident> <Body>
+        | OBJECT <SysFlag> '(' <Qualident> ')' IMPLEMENTS <Qualident> <REC_Type_DeclSeq> <Body>       
+        | PROCEDURE
+        | PROCEDURE <FormalPars>
+        | PROCEDURE <SysFlag>
+        | PROCEDURE <SysFlag> <FormalPars>
+        | ARRAY number OF <Type>
+        | ARRAY OF <Type>
+        | INTEGER !Sem esta linha funciona na mesma o Exemplo2
+        
+                    
+<REC_Type_DeclSeq> ::= <DeclSeq> | <REC_Type_DeclSeq> <DeclSeq>                                                                                    
+
+
+!-------------FIELD DECL---------------------------
+
+<FieldDecl> ::= <IdentList> ':' <Type>
+             |
+
+
+!-------------FIELD LIST---------------------------
+
+<FieldList> ::= <FieldDecl> | <FieldList> ';' <FieldDecl>
+
+
+!-------------BODY---------------------------
+
+<Body> ::= <StatBlock> | END
+
+
+!-------------STAT BLOCK-----------------------
+
+<StatBlock> ::= BEGIN <Aux_StatBlock> END
+!             | BEGIN END
+
+
+<Aux_StatBlock> ::= '{' <IdentList> '}' <StatSeq>
+!             | '{' <IdentList> '}'
+             |  <StatSeq>
+
+             
+!-------------STAT SEQ-----------------------
+
+<StatSeq> ::= <Statement> | <StatSeq> ';' <Statement>
+
+ 
+!-------------STATEMENT-----------------------
+
+<Statement> ::= <Designator> ':=' <Expr>
+             | <Designator>
+             | IF <Expr> THEN <StatSeq> <REC_Statement_EETSS> ELSE <StatSeq> END
+             | IF <Expr> THEN <StatSeq> <REC_Statement_EETSS> END
+             | IF <Expr> THEN <StatSeq> ELSE <StatSeq> END
+             | IF <Expr> THEN <StatSeq> END
+             | CASE <Expr> THEN <REC_Statement_Case> ELSE <StatSeq> END
+             | CASE <Expr> THEN <REC_Statement_Case> END
+             | WHILE <Expr> DO <StatSeq> END
+             | FOR ident ':=' <Expr> TO <Expr> BY <ConstExpr> DO <StatSeq> END
+             | FOR ident ':=' <Expr> TO <Expr> DO <StatSeq> END
+             | LOOP <StatSeq> END
+             | WITH <Qualident> ':' <Qualident> DO <StatSeq> END
+             | EXIT
+             | RETURN <Expr>
+             | RETURN
+             | AWAIT '(' <Expr> ')'
+             | <StatBlock>
+             | REPEAT <StatSeq> UNTIL <Expr>
+             |
+             
+
+<REC_Statement_EETSS> ::= <Aux_Statement_EETSS> | <REC_Statement_EETSS> <Aux_Statement_EETSS>
+<Aux_Statement_EETSS> ::=  ELSIF <Expr> THEN <StatSeq>
+                          
+<REC_Statement_Case> ::= <Case> | <REC_Statement_Case> '|' <Case>
+                                               
+            
+!------------------CASE-----------------------
+
+<Case> ::= <REC_Case> ':' <StatSeq>
+        |
+        
+<REC_Case> ::= <CaseLabels> | <REC_Case> ',' <CaseLabels> 
+
+
+!------------------CASE LABELS-------------------
+
+<CaseLabels> ::= <ConstExpr> | <ConstExpr> '..' <ConstExpr>
+
+             
+!------------------CONST EXPR------------------
+
+<ConstExpr> ::= <Expr>
+ 
+            
+!------------------EXPR----------------------V-
+
+<Expr> ::= <SimpleExpr> | <SimpleExpr> <Relation> <SimpleExpr>
+
+             
+!------------SIMPLE EXPR----------------------V-
+
+<SimpleExpr> ::= <Term> | <Term> <REC_SimpleExpr>
+
+<REC_SimpleExpr> ::= <MulOP> <Term> | <REC_SimpleExpr> <MulOP> <Term>
+
+              
+!------------TERM---------------------------V-
+
+<Term> ::= <Aux_Term> <Factor> <REC_Term>
+        | <Aux_Term> <Factor> 
+        | <Factor> <REC_Term>
+        | <Factor>
+       
+<Aux_Term> ::= '+' | '-'
+
+<REC_Term> ::= <AddOp> <Factor> | <REC_Term> <AddOp> <Factor>             
+
+
+!------------FACTOR-------------------------V-
+
+<Factor> ::= <Designator>
+          | number
+          | string
+          | NIL
+          | <Set>
+          | '(' <Expr> ')'
+          | '~' <Factor>          
+
+
+!------------SET----------------------------V-
+
+<Set> ::= '{' '}' | '{' <REC_Set> '}'
+       
+<REC_Set> ::= <Element> | <REC_Set> ',' <Element> 
+
+             
+!------------ELEMENT------------------------V-
+
+<Element> ::= <Expr> | <Expr> '..' <Expr>
+
+
+!------------RELATION-----------------------V
+
+<Relation> ::= '=' | '#' | '<' | '<=' | '>' | '>=' | IN | IS
+
+             
+!-------------MULOP-------------------------V
+
+<MulOp> ::= '*' | DIV | MOD | '/' | '&'
+
+
+!-------------ADDOP-------------------------V
+
+<AddOp> ::= '+' | '-' | OR
+
+             
+!-------------DESIGNATOR---------------------V-
+
+<Designator> ::= ident | ident <REC_Designator>
+              
+<REC_Designator> ::= <Aux_Designator> | <REC_Designator> <Aux_Designator>
+              
+<Aux_Designator> ::= '.' ident 
+                  | '['<ExprList>']'
+                  | '^'
+                  | '('<ExprList>')'
+
+
+!-------------EXPR LIST-----------------------V-   
+
+<ExprList> ::= <Expr> | <ExprList> ',' <Expr>
+
+
+!-------------IDENT LIST-----------------------V   
+
+<IdentList> ::= <IdentDef> | <IdentList> ',' <IdentDef>        
+
+
+!-------------QUALIDENT-----------------------V   
+
+<Qualident> ::= ident | ident '.' ident
+
+
+!-------------IDENT DEF-----------------------V
+
+<IdentDef> ::= ident | ident <Aux_IdentDef>
+<Aux_IdentDef> ::= '*' | '-'
+       
+
