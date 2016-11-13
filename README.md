@@ -1,1 +1,1 @@
-# University
+Projects developed during university
