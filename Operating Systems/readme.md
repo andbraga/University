@@ -1,4 +1,4 @@
-### This project writen in C simulates a disco.
+### This project writen in C simulates a disco
 
 ### The two console applications communicate with eachother using sockets
 
